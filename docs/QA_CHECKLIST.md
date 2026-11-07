@@ -30,6 +30,50 @@ none are assumed or inferred from code reading alone.
 3. **Keyword collision.** After broadening payment keywords, the word "instalment" itself (present in almost every SIP question) was shadowing the "manage" topic. Removed it from the payment list.
 4. **Silent context invention.** Visiting SIP Compass without a valid `sip` id previously defaulted silently to the active SIP. Now shows an explicit SIP picker instead.
 
+## Data-integrity audit (second pass)
+
+Executed against the local build and then the redeployed production site on
+7 November 2026, following three specific inconsistencies the user reported
+from the live deployment:
+
+| # | Reported issue | Root cause found | Fix | Verified |
+|---|---|---|---|---|
+| 1 | Active SIP showed an instalment debited 9 Nov 2026 while "today" was 7 Nov 2026 | `/sip-assist` and `/sip-assist/chat` were Client Components calling the data functions directly in the browser, so "today" came from the visitor's own device clock/timezone instead of the server's — a different clock from every other page (home, orders, portfolio, details), which were already server-rendered. This is a genuine source of date drift between pages, separate from the already-fixed hardcoded-date bug. | Converted both routes to async Server Components that resolve the SIP server-side (same `getSip`/`getAllSips` call as every other page) and pass the resolved, already-dated SIP into new client components (`SipAssistHomeClient`, `ChatScreenClient`) that handle only interaction, never dates. | Checked `/`, `/sip-assist`, `/sip-assist/chat` and `/sip-details/sip-active` side by side on the local build and on `sip-compass.vercel.app` — all four now show the same debited date (yesterday relative to real server time, never in the future). Confirmed via build output that both routes are now marked dynamic (ƒ), not static. |
+| 2 | Active SIP showed ₹66,000 invested vs. 32 x ₹2,000 = ₹64,000 | `totalInvested` added "+1" for the in-flight Processing instalment, even though `totalSuccessfulInstalments` (32) deliberately excluded it — the two figures were derived from different definitions of "successful". | `totalInvested` is now always `totalSuccessfulInstalments × monthlyAmount`; the Processing instalment's debit is reflected in the timeline/structured response text, not in the invested total. | ₹64,000 confirmed on home, SIP details, portfolio, and the assistant's negative-returns response, locally and on production. |
+| 3 | Stopped SIP: homepage said "no instalments since 5 June 2025", details page said "stopped on 7 July 2025" | Not reproducible in the code as audited — `stoppedDate`, `lastInstalmentDate` and `previousInstalmentDate` were already the same underlying value in `getStoppedSip()`. Most likely a stale/cached page view from before the earlier date fix went live. To make sure this can never actually happen, added an explicit invariant (see below) rather than relying on it being "already correct by construction". | `assertSipConsistent()` now throws if `stoppedDate`, `lastInstalmentDate` and `previousInstalmentDate` ever disagree for a stopped SIP. | Homepage and details page both show "7 July 2025" for the stopped SIP, locally and on production; the invariant check passes (`npm run check-data`). |
+
+### Automated consistency checks added
+
+- `assertSipConsistent()` in `src/lib/data.ts` runs on every call to
+  `getActiveSip()`/`getStoppedSip()` — i.e. on every real request in dev,
+  build and production, not just in a test — and throws if: invested amount
+  ≠ successful instalments × monthly amount; the latest instalment date is in
+  the future relative to real "today"; or (for a stopped SIP) `stoppedDate`,
+  `lastInstalmentDate` and `previousInstalmentDate` disagree, or a next
+  instalment date is set.
+- `npm run check-data` (`scripts/check-data-consistency.mjs`, via `tsx`)
+  actually calls `getAllSips()` and `getSip()` and prints the real computed
+  figures — a repeatable command, not a one-off manual check. Run and
+  passing as of this audit (see output captured above the table).
+
+### Journeys re-tested after the fix (local + production)
+
+| Journey | Result |
+|---|---|
+| Payment uncertainty ("money debited, units not showing") | PASS — dates agree with homepage |
+| AutoPay status | PASS |
+| Skip instalment | PASS — next-instalment date agrees with homepage |
+| Negative returns | PASS — invested/returns figures agree with homepage (₹64,000, +8.5%) |
+| Stopped SIP reason flow | PASS — neutral, no restart pressure |
+| Human support escalation (from stopped-SIP flow) | PASS — context preserved, "no ticket created" disclaimer shown |
+| SIP not specified / invalid id, on both `/sip-assist` and `/sip-assist/chat` | PASS — still shows the chooser / "couldn't find that SIP", now resolved server-side via `redirect()` instead of a client-side effect |
+
+`npm run build` and `npm run lint` both pass with zero errors after these
+changes. Not independently re-run in this pass: the full 16-item checklist
+above and the 20-case golden set in `EVALUATION.md` (their original results
+still hold, since this pass did not change the free-text matching logic they
+exercise — only the data layer and the two assistant pages' rendering model).
+
 ## Known limitations
 
 - The assistant is a **deterministic rule engine**, not a live LLM — it recognises a fixed vocabulary of keywords, not arbitrary natural language. Phrasing far outside the tested vocabulary (e.g., "my dough didn't zoom off") will hit the fallback even though a human would understand it.
