@@ -1,5 +1,6 @@
 import { addDays, addMonths, formatDate, today } from "./dates";
 import type { SIP, Topic } from "./types";
+import { xirrPct } from "./xirr";
 
 /**
  * Every SIP object is COMPUTED fresh, relative to the real current date,
@@ -29,10 +30,21 @@ export function getActiveSip(): SIP {
   // allotted yet — so it is deliberately excluded here, even though it already
   // shows up in the account's bank statement.
   const totalInvested = totalSuccessfulInstalments * monthlyAmount;
+  const currentValue = 69420;
+
+  // XIRR is computed from the dated allotted instalments and today's value —
+  // never a hardcoded figure — so it always agrees with the invested amount.
+  const allottedDates = Array.from({ length: totalSuccessfulInstalments }, (_, k) =>
+    addMonths(latestDate, -(totalSuccessfulInstalments - k))
+  );
+  const activeXirr = xirrPct([
+    ...allottedDates.map((date) => ({ date, amount: -monthlyAmount })),
+    { date: today(), amount: currentValue },
+  ]);
 
   return assertSipConsistent({
     id: "sip-active",
-    fundName: "Parag Parikh Flexi Cap Fund",
+    fundName: "Flexi Cap Fund (demo)",
     monthlyAmount,
     frequency: "Monthly",
     startDate: formatDate(startDate),
@@ -41,9 +53,9 @@ export function getActiveSip(): SIP {
     mandateApprovedDate: formatDate(mandateApprovedDate),
     bankAccountMasked: "HDFC Bank •••• 4821",
     totalInvested,
-    currentValue: 69420,
+    currentValue,
     unitsHeld: 612.48,
-    xirrPct: 7.8,
+    xirrPct: activeXirr,
     totalSuccessfulInstalments,
     recentInstalments,
     nextInstalmentDate: formatDate(nextDate),
@@ -64,9 +76,18 @@ export function getStoppedSip(): SIP {
     amount: monthlyAmount,
   }));
 
+  const currentValue = 51870;
+  const stoppedXirr = xirrPct([
+    ...Array.from({ length: totalSuccessfulInstalments }, (_, k) => ({
+      date: addMonths(lastInstalmentDate, -(totalSuccessfulInstalments - 1 - k)),
+      amount: -monthlyAmount,
+    })),
+    { date: today(), amount: currentValue },
+  ]);
+
   return assertSipConsistent({
     id: "sip-stopped",
-    fundName: "Axis Small Cap Fund",
+    fundName: "Small Cap Fund (demo)",
     monthlyAmount,
     frequency: "Monthly",
     startDate: formatDate(startDate),
@@ -75,9 +96,9 @@ export function getStoppedSip(): SIP {
     mandateApprovedDate: formatDate(mandateApprovedDate),
     bankAccountMasked: "HDFC Bank •••• 4821",
     totalInvested: totalSuccessfulInstalments * monthlyAmount,
-    currentValue: 51870,
+    currentValue,
     unitsHeld: 489.12,
-    xirrPct: 9.1,
+    xirrPct: stoppedXirr,
     totalSuccessfulInstalments,
     recentInstalments,
     nextInstalmentDate: null,

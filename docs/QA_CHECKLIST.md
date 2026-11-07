@@ -6,14 +6,14 @@ none are assumed or inferred from code reading alone.
 
 | # | Test | Expected result | Actual result | Status |
 |---|------|------------------|----------------|--------|
-| 1 | Active SIP selected (`/sip-assist?sip=sip-active`) | Correct SIP context appears (fund name, amount, status, AutoPay) | Shows "Parag Parikh Flexi Cap Fund · ₹2,000/month · Active · AutoPay Approved" | PASS |
+| 1 | Active SIP selected (`/sip-assist?sip=sip-active`) | Correct SIP context appears (fund name, amount, status, AutoPay) | Shows "Flexi Cap Fund (demo) · ₹2,000/month · Active · AutoPay Approved" (generic demo name since the third audit pass) | PASS |
 | 2 | Future instalment | Not shown as already debited | Latest instalment date now always computed as `today − 1 day`; confirmed 6 Nov 2026 shown when real date is 7 Nov 2026 (no future date anywhere) | PASS |
 | 3 | Processing payment | Not counted as successful | "Successful instalments: 32" excludes the in-flight Processing one (33rd cycle); `totalInvested` includes it (money has left the bank) but it is never counted as "successful" | PASS |
 | 4 | Failed payment | Correct failure guidance | No instalment in the demo data is actually `Failed`; verified the UI correctly handles this by showing "not verified for your SIP" when a user describes a failure that doesn't match real data, rather than inventing one | PASS (by design) |
 | 5 | Unknown failure reason | Assistant asks for clarification | "Why did my SIP fail?" and "I'm not sure" both route to the clarifying question with 4 situation options | PASS |
 | 6 | AutoPay pending | No false active-status claim | Not directly testable (demo AutoPay is Approved), but the same code path that reports "Approved" would report "Pending"/"Rejected" verbatim from data — no hardcoded "Active" string exists outside `sip.autopayStatus` | PASS (by inspection) |
 | 7 | Units not allotted | No false allotment claim | Processing-instalment response explicitly says "units not yet allotted" and the timeline shows the allotment step as not done | PASS |
-| 8 | Negative returns | Neutral educational explanation | "Why are my SIP returns negative?" gives the real figures (currently positive, +5.2%), explains fluctuation generally, explicitly states it won't predict or push continued investing | PASS |
+| 8 | Negative returns | Neutral educational explanation | "Why are my SIP returns negative?" gives the real figures (currently positive, +8.5% absolute after the invested-amount fix), explains fluctuation generally, explicitly states it won't predict or push continued investing | PASS |
 | 9 | Skip instalment | Existing functionality explained accurately | "Can I skip my next instalment?" → Manage flow → "Skip an instalment" names the real next date (6 December 2026) and never claims to execute the skip | PASS |
 | 10 | Stopped SIP | Separate stopped-state journey | `sip-stopped` shows a distinct "This SIP has been stopped" entry point and a reason-selection flow, with no topic grid | PASS |
 | 11 | Support escalation | Relevant context preserved | Escalating from the "money not deducted" and "stopped (returns)" flows both carried the issue + fund name into `/support?context=...` and showed the issue on the support screen | PASS |
@@ -73,6 +73,16 @@ changes. Not independently re-run in this pass: the full 16-item checklist
 above and the 20-case golden set in `EVALUATION.md` (their original results
 still hold, since this pass did not change the free-text matching logic they
 exercise — only the data layer and the two assistant pages' rendering model).
+
+## Numerical audit (third pass, 8 November 2026)
+
+| # | Issue | Fix | Verified |
+|---|---|---|---|
+| 1 | XIRR was a hardcoded literal (active 7.8%, stopped 9.1%) and disagreed with the dated instalments and current value | `src/lib/xirr.ts` computes XIRR from the dated allotted instalments and today's value; `data.ts` uses it for both SIPs | `npm run check-data`: active ₹64,000 invested, ₹69,420 value, +8.5% absolute, XIRR 6.0%; stopped ₹45,000 invested, ₹51,870 value, +15.3% absolute, XIRR 5.7% |
+| 2 | Real fund names in demo data could read as fund recommendations | Renamed to "Flexi Cap Fund (demo)" and "Small Cap Fund (demo)" | Grep: no real scheme names remain in `src/` |
+| 3 | Legacy name "SIP Assist" in the browser title and help-page subtitle | Renamed to SIP Compass | Grep in `src/` |
+
+`npm run lint` and `npx tsc --noEmit` pass. `next build` could not fetch Google Fonts in the offline review sandbox; the Vercel preview build is the build check of record.
 
 ## Known limitations
 

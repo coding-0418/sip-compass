@@ -12,7 +12,7 @@ export default async function HelpPage({ params }: { params: Promise<{ slug: str
 
   return (
     <div className="flex min-h-screen flex-col">
-      <AppHeader variant="sub" title={content.title} subtitle="SIP Assist help" backHref="/sip-assist" />
+      <AppHeader variant="sub" title={content.title} subtitle="SIP Compass help" backHref="/sip-assist" />
 
       <main className="flex-1 space-y-4 px-4 py-5">
         {content.type === "article" ? (
