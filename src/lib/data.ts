@@ -24,9 +24,13 @@ export function getActiveSip(): SIP {
     amount: monthlyAmount,
   }));
 
-  const totalInvested = (totalSuccessfulInstalments + 1) * monthlyAmount; // +1 for the in-flight debit
+  // Invested amount counts only successful (Allotted) contributions. The latest
+  // instalment is still Processing — money has left the bank but units are not
+  // allotted yet — so it is deliberately excluded here, even though it already
+  // shows up in the account's bank statement.
+  const totalInvested = totalSuccessfulInstalments * monthlyAmount;
 
-  return {
+  return assertSipConsistent({
     id: "sip-active",
     fundName: "Parag Parikh Flexi Cap Fund",
     monthlyAmount,
@@ -44,7 +48,7 @@ export function getActiveSip(): SIP {
     recentInstalments,
     nextInstalmentDate: formatDate(nextDate),
     previousInstalmentDate: formatDate(previousDate),
-  };
+  });
 }
 
 export function getStoppedSip(): SIP {
@@ -60,7 +64,7 @@ export function getStoppedSip(): SIP {
     amount: monthlyAmount,
   }));
 
-  return {
+  return assertSipConsistent({
     id: "sip-stopped",
     fundName: "Axis Small Cap Fund",
     monthlyAmount,
@@ -80,7 +84,58 @@ export function getStoppedSip(): SIP {
     previousInstalmentDate: formatDate(lastInstalmentDate),
     stoppedDate: formatDate(lastInstalmentDate),
     lastInstalmentDate: formatDate(lastInstalmentDate),
-  };
+  });
+}
+
+/**
+ * Automated consistency check, run on every SIP object before it leaves this
+ * module (dev, build and production alike — this is not a one-off test, it
+ * runs on every real request). Throws loudly rather than silently showing
+ * mismatched figures, so a future change to this file can't reintroduce the
+ * kind of invested-amount or date mismatch found during the November 2026 audit.
+ */
+function assertSipConsistent(sip: SIP): SIP {
+  const expectedInvested = sip.totalSuccessfulInstalments * sip.monthlyAmount;
+  if (sip.totalInvested !== expectedInvested) {
+    throw new Error(
+      `Data consistency violation for ${sip.id}: totalInvested (₹${sip.totalInvested}) must equal ` +
+        `totalSuccessfulInstalments (${sip.totalSuccessfulInstalments}) × monthlyAmount (₹${sip.monthlyAmount}) = ₹${expectedInvested}.`
+    );
+  }
+
+  const successfulCount = sip.recentInstalments.filter((i) => i.status === "Allotted").length;
+  const nonSuccessfulCount = sip.recentInstalments.filter((i) => i.status !== "Allotted").length;
+  if (successfulCount + nonSuccessfulCount !== sip.recentInstalments.length) {
+    throw new Error(`Data consistency violation for ${sip.id}: instalment status accounting doesn't add up.`);
+  }
+
+  const latest = sip.recentInstalments[sip.recentInstalments.length - 1];
+  if (latest) {
+    const latestParsed = new Date(latest.date);
+    if (latestParsed.getTime() > today().getTime()) {
+      throw new Error(
+        `Data consistency violation for ${sip.id}: latest instalment date (${latest.date}) is in the future relative to today.`
+      );
+    }
+  }
+
+  if (sip.status === "Stopped") {
+    if (sip.stoppedDate !== sip.lastInstalmentDate) {
+      throw new Error(
+        `Data consistency violation for ${sip.id}: stoppedDate (${sip.stoppedDate}) must match lastInstalmentDate (${sip.lastInstalmentDate}).`
+      );
+    }
+    if (sip.previousInstalmentDate !== sip.lastInstalmentDate) {
+      throw new Error(
+        `Data consistency violation for ${sip.id}: previousInstalmentDate (${sip.previousInstalmentDate}) must match lastInstalmentDate (${sip.lastInstalmentDate}).`
+      );
+    }
+    if (sip.nextInstalmentDate !== null) {
+      throw new Error(`Data consistency violation for ${sip.id}: a stopped SIP must not have a next instalment date.`);
+    }
+  }
+
+  return sip;
 }
 
 export function getAllSips(): SIP[] {
