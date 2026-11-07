@@ -3,7 +3,7 @@ import BottomNavigation from "@/components/BottomNavigation";
 import TopTabs from "@/components/TopTabs";
 import SIPCard from "@/components/SIPCard";
 import SIPAssistEntryCard from "@/components/SIPAssistEntryCard";
-import { sampleSIP } from "@/lib/data";
+import { allSips } from "@/lib/data";
 
 export default function MutualFundsPage() {
   return (
@@ -14,13 +14,14 @@ export default function MutualFundsPage() {
       <main className="flex-1 space-y-6 px-4 py-5">
         <h1 className="text-xl font-bold text-ink">Mutual Funds</h1>
 
-        <section className="space-y-3">
+        <section className="space-y-4">
           <h2 className="text-sm font-semibold text-ink">My SIPs</h2>
-          <SIPCard sip={sampleSIP} />
-        </section>
-
-        <section>
-          <SIPAssistEntryCard />
+          {allSips.map((sip) => (
+            <div key={sip.id} className="space-y-3">
+              <SIPCard sip={sip} />
+              <SIPAssistEntryCard sip={sip} />
+            </div>
+          ))}
         </section>
       </main>
 

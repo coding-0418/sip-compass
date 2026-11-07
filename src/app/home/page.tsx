@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LineChart, TrendingUp, Wallet } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import BottomNavigation from "@/components/BottomNavigation";
+import { activeSip, allSips } from "@/lib/data";
 
 const quickLinks = [
   { label: "Mutual Funds", description: "View and manage your SIPs", href: "/", icon: LineChart },
@@ -22,8 +23,12 @@ export default function HomePage() {
 
         <section className="rounded-2xl border border-border bg-success-bg p-4">
           <p className="text-xs font-medium text-primary-dark">Total invested</p>
-          <p className="mt-1 text-2xl font-bold text-ink">₹18,000</p>
-          <p className="mt-1 text-xs text-muted">Across 1 active SIP</p>
+          <p className="mt-1 text-2xl font-bold text-ink">
+            ₹{allSips.reduce((sum, s) => sum + s.totalInvested, 0).toLocaleString("en-IN")}
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            Across {allSips.length} SIPs · {activeSip.status} and {allSips.length - 1} stopped
+          </p>
         </section>
 
         <section className="space-y-3">

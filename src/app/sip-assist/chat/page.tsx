@@ -6,19 +6,23 @@ import { SendHorizonal } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import ChatMessageView from "@/components/ChatMessage";
 import TypingIndicator from "@/components/TypingIndicator";
+import { getSip, activeSip } from "@/lib/data";
 import {
   FALLBACK_TEXT,
   RESTRICTED_TEXT,
   matchMessage,
-  nodes,
+  buildActiveNodes,
+  buildStoppedNodes,
+  stoppedIntroNode,
+  stoppedIntroMessage,
   topicEntryNode,
   topicOpeningMessage,
 } from "@/lib/conversation";
-import type { ChatMessage, Topic } from "@/lib/types";
+import type { ChatMessage, ConversationNode, Topic } from "@/lib/types";
 
 const topicTitle: Record<Topic, string> = {
   payment: "Payment and instalments",
-  mandate: "Mandate status",
+  mandate: "AutoPay status",
   manage: "Manage my SIP",
   understand: "Understand my investment",
 };
@@ -29,13 +33,13 @@ function nextId() {
   return `msg-${idCounter}`;
 }
 
-function nodeToMessage(nodeId: string): ChatMessage | null {
-  const node = nodes[nodeId];
+function nodeToMessage(node: ConversationNode | undefined): ChatMessage | null {
   if (!node) return null;
   return {
     id: nextId(),
     role: "assistant",
     text: node.assistantText,
+    structured: node.structured,
     infoCard: node.infoCard,
     verified: node.verified,
     options: node.options,
@@ -51,14 +55,19 @@ function ChatScreen() {
   const initialised = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const sip = getSip(searchParams.get("sip") ?? "") ?? activeSip;
+  const isStopped = sip.status === "Stopped";
+  const nodes = isStopped ? buildStoppedNodes(sip) : buildActiveNodes(sip);
+
   const topicParam = searchParams.get("topic") as Topic | null;
+  const stoppedParam = searchParams.get("stopped");
   const qParam = searchParams.get("q");
-  const headerTitle = topicParam && topicTitle[topicParam] ? topicTitle[topicParam] : "SIP Assist";
+  const headerTitle = topicParam && topicTitle[topicParam] ? topicTitle[topicParam] : "SIP Compass";
 
   function respondWithNode(nodeId: string, delay = 700) {
     setTyping(true);
     window.setTimeout(() => {
-      const assistantMsg = nodeToMessage(nodeId);
+      const assistantMsg = nodeToMessage(nodes[nodeId]);
       setTyping(false);
       if (assistantMsg) {
         setMessages((prev) => [...prev, assistantMsg]);
@@ -66,11 +75,11 @@ function ChatScreen() {
     }, delay);
   }
 
-  function respondWithText(text: string, options?: Partial<ChatMessage>, delay = 700) {
+  function respondWithText(text: string, delay = 700) {
     setTyping(true);
     window.setTimeout(() => {
       setTyping(false);
-      setMessages((prev) => [...prev, { id: nextId(), role: "assistant", text: [text], ...options }]);
+      setMessages((prev) => [...prev, { id: nextId(), role: "assistant", text: [text] }]);
     }, delay);
   }
 
@@ -78,6 +87,13 @@ function ChatScreen() {
     const trimmed = raw.trim();
     if (!trimmed) return;
     setMessages((prev) => [...prev, { id: nextId(), role: "user", text: [trimmed] }]);
+
+    if (isStopped) {
+      respondWithText(
+        "I'm not able to answer free-form questions about a stopped SIP yet — pick one of the reasons above, or contact support for anything specific.",
+      );
+      return;
+    }
 
     const { restricted, topic } = matchMessage(trimmed);
     if (restricted) {
@@ -95,8 +111,14 @@ function ChatScreen() {
     if (initialised.current) return;
     initialised.current = true;
 
-    if (topicParam && topicEntryNode[topicParam]) {
+    if (isStopped || stoppedParam) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time chat bootstrap, not a render loop
+      setMessages([{ id: nextId(), role: "user", text: [stoppedIntroMessage] }]);
+      respondWithNode(stoppedIntroNode);
+      return;
+    }
+
+    if (topicParam && topicEntryNode[topicParam]) {
       setMessages([{ id: nextId(), role: "user", text: [topicOpeningMessage[topicParam]] }]);
       respondWithNode(topicEntryNode[topicParam]);
       return;
@@ -111,7 +133,7 @@ function ChatScreen() {
       {
         id: nextId(),
         role: "assistant",
-        text: ["Hi! How can I help?", "I can help explain your SIP journey and guide you to the right action."],
+        text: ["Hi! I'm SIP Compass.", "I can help you understand your SIP and guide you through the next step."],
       },
     ]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -129,7 +151,7 @@ function ChatScreen() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <AppHeader variant="sub" title={headerTitle} subtitle="SIP Assist" backHref="/sip-assist" />
+      <AppHeader variant="sub" title={isStopped ? "Stopped SIP" : headerTitle} subtitle={sip.fundName} backHref={`/sip-assist?sip=${sip.id}`} />
 
       <main ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {messages.map((message) => (

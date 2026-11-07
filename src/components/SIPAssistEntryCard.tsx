@@ -1,23 +1,28 @@
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import { AlertTriangle, Sparkles } from "lucide-react";
+import { getSipAlert } from "@/lib/data";
+import type { SIP } from "@/lib/types";
 
-export default function SIPAssistEntryCard() {
+export default function SIPAssistEntryCard({ sip }: { sip: SIP }) {
+  const alert = getSipAlert(sip);
+  const isIssue = Boolean(alert);
+
   return (
-    <div className="rounded-2xl border border-border bg-success-bg p-4">
+    <div className={`rounded-2xl border p-4 ${isIssue ? "border-[#F5DCA8] bg-warning-bg" : "border-border bg-success-bg"}`}>
       <div className="flex items-center gap-2">
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-primary-dark">
-          <Sparkles size={16} />
+          {isIssue ? <AlertTriangle size={16} className="text-[#B8781A]" /> : <Sparkles size={16} />}
         </span>
-        <p className="text-sm font-semibold text-ink">Need help with your SIP?</p>
+        <p className="text-sm font-semibold text-ink">{isIssue ? alert!.headline : "Your SIP, made clearer."}</p>
       </div>
       <p className="mt-2 text-sm text-muted">
-        Understand payments, mandates, instalments and SIP management.
+        {isIssue ? "Let's understand what's happening." : "Check status, understand payments and manage your SIP."}
       </p>
       <Link
-        href="/sip-assist"
+        href={`/sip-assist?sip=${sip.id}`}
         className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
       >
-        Ask SIP Assist
+        Ask SIP Compass
         <span aria-hidden>→</span>
       </Link>
     </div>

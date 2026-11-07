@@ -1,8 +1,11 @@
+import { activeSip } from "./data";
+
 export type HelpContent =
   | { type: "article"; title: string; intro?: string; paragraphs?: string[]; bullets?: string[] }
   | { type: "list"; title: string; intro?: string; items: { label: string; caption?: string; badge?: string }[] }
-  | { type: "status"; title: string; intro?: string; steps: { label: string; caption?: string; done: boolean }[] }
-  | { type: "contact"; title: string; intro?: string; options: { label: string; caption: string }[] };
+  | { type: "status"; title: string; intro?: string; steps: { label: string; caption?: string; done: boolean }[] };
+
+const latest = activeSip.recentInstalments[activeSip.recentInstalments.length - 1];
 
 export const helpContent: Record<string, HelpContent> = {
   "instalment-failures": {
@@ -81,48 +84,38 @@ export const helpContent: Record<string, HelpContent> = {
   "transaction-status": {
     type: "status",
     title: "Transaction status",
-    intro: "Latest instalment — 12 October",
+    intro: `Latest instalment — ${latest.date}`,
     steps: [
       { label: "Debit initiated", caption: "Request sent to your bank", done: true },
-      { label: "Debit confirmed", caption: "Bank confirmed the deduction", done: true },
-      { label: "Units allotted", caption: "Awaiting NAV allotment from the fund house", done: false },
+      { label: "Debit confirmed", caption: `Bank confirmed the deduction on ${latest.date}`, done: true },
+      { label: "Units allotted", caption: "Awaiting NAV allotment from the fund house", done: latest.status === "Allotted" },
     ],
   },
   "pending-payments": {
     type: "list",
     title: "Pending SIP payments",
-    items: [
-      {
-        label: "Parag Parikh Flexi Cap Fund",
-        caption: "₹2,000 · Instalment of 12 October",
-        badge: "Processing",
-      },
-    ],
+    items:
+      latest.status === "Processing" || latest.status === "Failed"
+        ? [
+            {
+              label: activeSip.fundName,
+              caption: `₹${latest.amount.toLocaleString("en-IN")} · Instalment of ${latest.date}`,
+              badge: latest.status,
+            },
+          ]
+        : [],
   },
   "upcoming-instalments": {
     type: "list",
     title: "Upcoming instalments",
-    items: [
-      {
-        label: "Parag Parikh Flexi Cap Fund",
-        caption: "₹2,000 · 12 November",
-        badge: "Eligible to skip",
-      },
-      {
-        label: "Parag Parikh Flexi Cap Fund",
-        caption: "₹2,000 · 12 December",
-        badge: "Eligible to skip",
-      },
-    ],
-  },
-  "contact-support": {
-    type: "contact",
-    title: "Contact Groww support",
-    intro: "Here's how you can reach the support team:",
-    options: [
-      { label: "Chat with us", caption: "Available in-app, 9 AM – 9 PM" },
-      { label: "Call support", caption: "1800-419-7799 (toll-free)" },
-      { label: "Email", caption: "support@groww-assist-demo.example" },
-    ],
+    items: activeSip.nextInstalmentDate
+      ? [
+          {
+            label: activeSip.fundName,
+            caption: `₹${activeSip.monthlyAmount.toLocaleString("en-IN")} · ${activeSip.nextInstalmentDate}`,
+            badge: "Eligible to skip",
+          },
+        ]
+      : [],
   },
 };

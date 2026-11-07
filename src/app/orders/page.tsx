@@ -1,14 +1,34 @@
 import AppHeader from "@/components/AppHeader";
 import BottomNavigation from "@/components/BottomNavigation";
-import { sampleSIP } from "@/lib/data";
+import { allSips } from "@/lib/data";
+import type { Instalment, InstalmentStatus, SIP } from "@/lib/types";
 
-const orders = [
-  { date: "12 October", label: `${sampleSIP.fundName} — SIP instalment`, amount: 2000, status: "Completed" },
-  { date: "12 September", label: `${sampleSIP.fundName} — SIP instalment`, amount: 2000, status: "Completed" },
-  { date: "12 August", label: `${sampleSIP.fundName} — SIP instalment`, amount: 2000, status: "Completed" },
-];
+const statusStyle: Record<InstalmentStatus, string> = {
+  Allotted: "bg-success-bg text-primary-dark",
+  Processing: "bg-warning-bg text-[#8A5C13]",
+  Debited: "bg-warning-bg text-[#8A5C13]",
+  Scheduled: "bg-surface text-muted",
+  Failed: "bg-red-50 text-red-600",
+};
+
+const statusLabel: Record<InstalmentStatus, string> = {
+  Allotted: "Completed",
+  Processing: "Processing",
+  Debited: "Debited",
+  Scheduled: "Scheduled",
+  Failed: "Failed",
+};
+
+interface Row {
+  sip: SIP;
+  instalment: Instalment;
+}
 
 export default function OrdersPage() {
+  const rows: Row[] = allSips
+    .flatMap((sip) => sip.recentInstalments.map((instalment) => ({ sip, instalment })))
+    .sort((a, b) => Date.parse(b.instalment.date) - Date.parse(a.instalment.date));
+
   return (
     <div className="flex min-h-screen flex-col">
       <AppHeader variant="main" />
@@ -17,16 +37,19 @@ export default function OrdersPage() {
         <h1 className="text-xl font-bold text-ink">Orders</h1>
 
         <div className="space-y-2.5">
-          {orders.map((order) => (
-            <div key={order.date} className="flex items-center justify-between rounded-2xl border border-border bg-white p-3.5">
+          {rows.map(({ sip, instalment }) => (
+            <div
+              key={`${sip.id}-${instalment.date}`}
+              className="flex items-center justify-between rounded-2xl border border-border bg-white p-3.5"
+            >
               <div>
-                <p className="text-sm font-medium text-ink">{order.label}</p>
-                <p className="mt-0.5 text-xs text-muted">{order.date}</p>
+                <p className="text-sm font-medium text-ink">{sip.fundName} — SIP instalment</p>
+                <p className="mt-0.5 text-xs text-muted">{instalment.date}</p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-semibold text-ink">₹{order.amount.toLocaleString("en-IN")}</p>
-                <span className="mt-0.5 inline-block rounded-full bg-success-bg px-2 py-0.5 text-[11px] font-medium text-primary-dark">
-                  {order.status}
+                <p className="text-sm font-semibold text-ink">₹{instalment.amount.toLocaleString("en-IN")}</p>
+                <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${statusStyle[instalment.status]}`}>
+                  {statusLabel[instalment.status]}
                 </span>
               </div>
             </div>

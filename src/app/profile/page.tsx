@@ -6,7 +6,7 @@ const menu = [
   { label: "Orders", href: "/orders", icon: ReceiptText },
   { label: "Portfolio", href: "/portfolio", icon: Wallet },
   { label: "Notifications", href: "/notifications", icon: Bell },
-  { label: "Help & Support", href: "/help/contact-support", icon: HelpCircle },
+  { label: "Help & Support", href: "/support", icon: HelpCircle },
 ];
 
 export default function ProfilePage() {

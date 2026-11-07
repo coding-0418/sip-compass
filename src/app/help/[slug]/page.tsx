@@ -1,10 +1,8 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { Check, Circle, Headset, Mail, Phone } from "lucide-react";
+import { Check, Circle } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { helpContent } from "@/lib/helpContent";
-
-const contactIcons = [Headset, Phone, Mail];
 
 async function HelpArticle({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -40,6 +38,11 @@ async function HelpArticle({ params }: { params: Promise<{ slug: string }> }) {
         {content.type === "list" ? (
           <>
             {content.intro ? <p className="text-sm text-muted">{content.intro}</p> : null}
+            {content.items.length === 0 ? (
+              <p className="rounded-xl border border-border bg-surface p-3.5 text-sm text-muted">
+                Nothing here right now — everything&apos;s up to date.
+              </p>
+            ) : null}
             <div className="space-y-2.5">
               {content.items.map((item) => (
                 <div key={item.label} className="rounded-xl border border-border bg-white p-3.5">
@@ -86,27 +89,6 @@ async function HelpArticle({ params }: { params: Promise<{ slug: string }> }) {
           </>
         ) : null}
 
-        {content.type === "contact" ? (
-          <>
-            {content.intro ? <p className="text-sm text-muted">{content.intro}</p> : null}
-            <div className="space-y-2.5">
-              {content.options.map((option, i) => {
-                const Icon = contactIcons[i % contactIcons.length];
-                return (
-                  <div key={option.label} className="flex items-center gap-3 rounded-xl border border-border bg-white p-3.5">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-success-bg text-primary-dark">
-                      <Icon size={16} />
-                    </span>
-                    <div>
-                      <p className="text-sm font-medium text-ink">{option.label}</p>
-                      <p className="text-xs text-muted">{option.caption}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        ) : null}
       </main>
     </div>
   );
