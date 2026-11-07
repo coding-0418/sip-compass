@@ -67,7 +67,7 @@ export function buildActiveNodes(sip: SIP): Record<string, ConversationNode> {
       structured: {
         whatHappened: `Your ${fmtMoney(latest.amount)} instalment for ${latestMonth} was debited on ${latest.date}.`,
         whatItMeans:
-          "Bank debit and mutual fund order confirmation don't always happen at the same moment — the fund house still needs to allot units at the applicable NAV, which can take a day or two. Since a debit is already confirmed, there's no need to pay again for this instalment.",
+          "Bank debit and unit allotment are separate steps — the fund house allots units at the NAV of the applicable business day, so units can appear later than the debit, especially around weekends and holidays. Since a debit is already confirmed, there's no need to pay again for this instalment.",
         verifiedNote: latestIsProcessingOrFailed
           ? `Verified: debited on ${latest.date}, currently ${latest.status} — units not yet allotted.`
           : `Verified: your latest instalment (${latest.date}) was already allotted — no instalment is currently stuck in processing.`,
@@ -82,7 +82,7 @@ export function buildActiveNodes(sip: SIP): Record<string, ConversationNode> {
           { id: "sa-2", label: "Check order status", description: "Latest status from your bank and Groww", href: "/help/transaction-status" },
           { id: "sa-3", label: "Understand processing timelines", description: "How long allotment usually takes", href: "/help/order-processing" },
         ],
-        supportNote: "If this isn't resolved within 2 working days of the debit, contact Groww Support.",
+        supportNote: "Groww's help centre advises contacting Support if your latest instalment still isn't showing after more than a day.",
       },
     },
     "payment-case-not-deducted": {
