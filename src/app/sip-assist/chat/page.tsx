@@ -1,12 +1,12 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { SendHorizonal } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import ChatMessageView from "@/components/ChatMessage";
 import TypingIndicator from "@/components/TypingIndicator";
-import { getSip, activeSip } from "@/lib/data";
+import { getSip } from "@/lib/data";
 import {
   FALLBACK_TEXT,
   RESTRICTED_TEXT,
@@ -22,7 +22,7 @@ import type { ChatMessage, ConversationNode, Topic } from "@/lib/types";
 
 const topicTitle: Record<Topic, string> = {
   payment: "Payment and instalments",
-  mandate: "AutoPay status",
+  mandate: "AutoPay (mandate) status",
   manage: "Manage my SIP",
   understand: "Understand my investment",
 };
@@ -48,6 +48,7 @@ function nodeToMessage(node: ConversationNode | undefined): ChatMessage | null {
 }
 
 function ChatScreen() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [typing, setTyping] = useState(false);
@@ -55,9 +56,10 @@ function ChatScreen() {
   const initialised = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const sip = getSip(searchParams.get("sip") ?? "") ?? activeSip;
-  const isStopped = sip.status === "Stopped";
-  const nodes = isStopped ? buildStoppedNodes(sip) : buildActiveNodes(sip);
+  const sipParam = searchParams.get("sip");
+  const sip = sipParam ? getSip(sipParam) : undefined;
+  const isStopped = sip?.status === "Stopped";
+  const nodes = sip ? (isStopped ? buildStoppedNodes(sip) : buildActiveNodes(sip)) : {};
 
   const topicParam = searchParams.get("topic") as Topic | null;
   const stoppedParam = searchParams.get("stopped");
@@ -95,13 +97,13 @@ function ChatScreen() {
       return;
     }
 
-    const { restricted, topic } = matchMessage(trimmed);
+    const { restricted, topic, nodeId } = matchMessage(trimmed);
     if (restricted) {
       respondWithText(RESTRICTED_TEXT);
       return;
     }
     if (topic) {
-      respondWithNode(topicEntryNode[topic]);
+      respondWithNode(nodeId ?? topicEntryNode[topic]);
       return;
     }
     respondWithText(FALLBACK_TEXT);
@@ -110,6 +112,11 @@ function ChatScreen() {
   useEffect(() => {
     if (initialised.current) return;
     initialised.current = true;
+
+    if (!sip) {
+      router.replace(sipParam ? `/sip-assist?sip=${sipParam}` : "/sip-assist");
+      return;
+    }
 
     if (isStopped || stoppedParam) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time chat bootstrap, not a render loop
@@ -148,6 +155,8 @@ function ChatScreen() {
     setMessages((prev) => [...prev, { id: nextId(), role: "user", text: [label] }]);
     respondWithNode(nextNodeId);
   }
+
+  if (!sip) return null;
 
   return (
     <div className="flex min-h-screen flex-col">

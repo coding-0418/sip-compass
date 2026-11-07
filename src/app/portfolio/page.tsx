@@ -1,9 +1,12 @@
 import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
 import BottomNavigation from "@/components/BottomNavigation";
-import { allSips } from "@/lib/data";
+import { getAllSips } from "@/lib/data";
+
+export const dynamic = "force-dynamic";
 
 export default function PortfolioPage() {
+  const allSips = getAllSips();
   const invested = allSips.reduce((sum, s) => sum + s.totalInvested, 0);
   const currentValue = allSips.reduce((sum, s) => sum + s.currentValue, 0);
   const returns = currentValue - invested;

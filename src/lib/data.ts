@@ -1,72 +1,101 @@
+import { addDays, addMonths, formatDate, today } from "./dates";
 import type { SIP, Topic } from "./types";
 
 /**
- * TODAY is the fixed reference date the whole demo is built around.
- * Every date below is hand-picked relative to this so the app never
- * shows contradictory dates across screens.
+ * Every SIP object is COMPUTED fresh, relative to the real current date,
+ * each time these functions are called — never a hardcoded literal date.
+ * This is what guarantees the prototype can never show a "debited" date
+ * that sits in the future relative to whoever is actually viewing it,
+ * no matter how long the server process has been running for.
  */
-export const TODAY = "10 November 2026";
 
-export const activeSip: SIP = {
-  id: "sip-active",
-  fundName: "Parag Parikh Flexi Cap Fund",
-  monthlyAmount: 2000,
-  frequency: "Monthly",
-  startDate: "9 March 2024",
-  status: "Active",
-  autopayStatus: "Approved",
-  mandateApprovedDate: "28 February 2024",
-  bankAccountMasked: "HDFC Bank •••• 4821",
-  totalInvested: 66000,
-  currentValue: 69420,
-  unitsHeld: 612.48,
-  xirrPct: 7.8,
-  totalSuccessfulInstalments: 32,
-  recentInstalments: [
-    { date: "9 June 2026", status: "Allotted", amount: 2000 },
-    { date: "9 July 2026", status: "Allotted", amount: 2000 },
-    { date: "9 August 2026", status: "Allotted", amount: 2000 },
-    { date: "9 September 2026", status: "Allotted", amount: 2000 },
-    { date: "9 October 2026", status: "Allotted", amount: 2000 },
-    { date: "9 November 2026", status: "Processing", amount: 2000 },
-  ],
-  nextInstalmentDate: "9 December 2026",
-  previousInstalmentDate: "9 October 2026",
-};
+export function getActiveSip(): SIP {
+  const latestDate = addDays(today(), -1); // "debited yesterday" — the Journey 2 scenario, always true
+  const previousDate = addMonths(latestDate, -1);
+  const nextDate = addMonths(latestDate, 1);
+  const totalSuccessfulInstalments = 32;
+  const startDate = addMonths(latestDate, -totalSuccessfulInstalments);
+  const mandateApprovedDate = addDays(startDate, -9);
+  const monthlyAmount = 2000;
 
-export const stoppedSip: SIP = {
-  id: "sip-stopped",
-  fundName: "Axis Small Cap Fund",
-  monthlyAmount: 1500,
-  frequency: "Monthly",
-  startDate: "5 January 2023",
-  status: "Stopped",
-  autopayStatus: "Cancelled",
-  mandateApprovedDate: "2 January 2023",
-  bankAccountMasked: "HDFC Bank •••• 4821",
-  totalInvested: 45000,
-  currentValue: 51870,
-  unitsHeld: 489.12,
-  xirrPct: 9.1,
-  totalSuccessfulInstalments: 30,
-  recentInstalments: [
-    { date: "5 April 2025", status: "Allotted", amount: 1500 },
-    { date: "5 May 2025", status: "Allotted", amount: 1500 },
-    { date: "5 June 2025", status: "Allotted", amount: 1500 },
-  ],
-  nextInstalmentDate: null,
-  previousInstalmentDate: "5 June 2025",
-  stoppedDate: "5 July 2025",
-  lastInstalmentDate: "5 June 2025",
-};
+  const recentInstalments = [5, 4, 3, 2, 1, 0].map((monthsAgo) => ({
+    date: formatDate(addMonths(latestDate, -monthsAgo)),
+    status: monthsAgo === 0 ? ("Processing" as const) : ("Allotted" as const),
+    amount: monthlyAmount,
+  }));
 
-export const allSips: SIP[] = [activeSip, stoppedSip];
+  const totalInvested = (totalSuccessfulInstalments + 1) * monthlyAmount; // +1 for the in-flight debit
 
-export function getSip(id: string): SIP | undefined {
-  return allSips.find((s) => s.id === id);
+  return {
+    id: "sip-active",
+    fundName: "Parag Parikh Flexi Cap Fund",
+    monthlyAmount,
+    frequency: "Monthly",
+    startDate: formatDate(startDate),
+    status: "Active",
+    autopayStatus: "Approved",
+    mandateApprovedDate: formatDate(mandateApprovedDate),
+    bankAccountMasked: "HDFC Bank •••• 4821",
+    totalInvested,
+    currentValue: 69420,
+    unitsHeld: 612.48,
+    xirrPct: 7.8,
+    totalSuccessfulInstalments,
+    recentInstalments,
+    nextInstalmentDate: formatDate(nextDate),
+    previousInstalmentDate: formatDate(previousDate),
+  };
 }
 
-/** The one real, verified issue the active SIP currently has — or null if everything's normal. */
+export function getStoppedSip(): SIP {
+  const lastInstalmentDate = addMonths(today(), -16);
+  const totalSuccessfulInstalments = 30;
+  const startDate = addMonths(lastInstalmentDate, -(totalSuccessfulInstalments - 1));
+  const mandateApprovedDate = addDays(startDate, -3);
+  const monthlyAmount = 1500;
+
+  const recentInstalments = [2, 1, 0].map((monthsAgo) => ({
+    date: formatDate(addMonths(lastInstalmentDate, -monthsAgo)),
+    status: "Allotted" as const,
+    amount: monthlyAmount,
+  }));
+
+  return {
+    id: "sip-stopped",
+    fundName: "Axis Small Cap Fund",
+    monthlyAmount,
+    frequency: "Monthly",
+    startDate: formatDate(startDate),
+    status: "Stopped",
+    autopayStatus: "Cancelled",
+    mandateApprovedDate: formatDate(mandateApprovedDate),
+    bankAccountMasked: "HDFC Bank •••• 4821",
+    totalInvested: totalSuccessfulInstalments * monthlyAmount,
+    currentValue: 51870,
+    unitsHeld: 489.12,
+    xirrPct: 9.1,
+    totalSuccessfulInstalments,
+    recentInstalments,
+    nextInstalmentDate: null,
+    previousInstalmentDate: formatDate(lastInstalmentDate),
+    stoppedDate: formatDate(lastInstalmentDate),
+    lastInstalmentDate: formatDate(lastInstalmentDate),
+  };
+}
+
+export function getAllSips(): SIP[] {
+  return [getActiveSip(), getStoppedSip()];
+}
+
+export function getSip(id: string): SIP | undefined {
+  return getAllSips().find((s) => s.id === id);
+}
+
+export function getToday(): string {
+  return formatDate(today());
+}
+
+/** The one real, verified issue a SIP currently has — or null if everything's normal. Never a fabricated warning. */
 export function getSipAlert(sip: SIP): { headline: string; detail: string } | null {
   const latest = sip.recentInstalments[sip.recentInstalments.length - 1];
   if (sip.status === "Stopped") {
@@ -85,10 +114,10 @@ export function getSipAlert(sip: SIP): { headline: string; detail: string } | nu
     };
   }
   if (sip.autopayStatus === "Pending") {
-    return { headline: "AutoPay mandate pending", detail: "Your bank hasn't confirmed it yet." };
+    return { headline: "AutoPay (mandate) pending", detail: "Your bank hasn't confirmed it yet." };
   }
   if (sip.autopayStatus === "Rejected") {
-    return { headline: "AutoPay mandate rejected", detail: "Instalments can't be processed until this is fixed." };
+    return { headline: "AutoPay (mandate) rejected", detail: "Instalments can't be processed until this is fixed." };
   }
   return null;
 }
@@ -105,7 +134,7 @@ export const topics: { id: Topic; title: string; description: string }[] = [
   },
   {
     id: "mandate",
-    title: "AutoPay status",
+    title: "AutoPay (mandate) status",
     description: "The bank permission behind your instalments.",
   },
   {

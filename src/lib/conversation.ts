@@ -1,4 +1,3 @@
-import { activeSip, stoppedSip } from "./data";
 import type { ConversationNode, SIP, StopReason, Topic } from "./types";
 
 export const FALLBACK_TEXT =
@@ -133,9 +132,9 @@ export function buildActiveNodes(sip: SIP): Record<string, ConversationNode> {
     "mandate-info": {
       id: "mandate-info",
       structured: {
-        whatHappened: `Your AutoPay mandate is currently ${sip.autopayStatus}.`,
+        whatHappened: `Your AutoPay (mandate) is currently ${sip.autopayStatus}.`,
         whatItMeans:
-          "AutoPay is a one-time permission you give your bank so Groww can auto-debit each instalment — it's separate from any single instalment actually going through.",
+          "AutoPay (mandate) is a one-time permission you give your bank so Groww can auto-debit each instalment — it's separate from any single instalment actually going through.",
         verifiedNote: `Verified: approved on ${sip.mandateApprovedDate} for ${sip.bankAccountMasked}.`,
         isVerified: true,
         nextSteps: [
@@ -226,58 +225,64 @@ export function buildActiveNodes(sip: SIP): Record<string, ConversationNode> {
     },
     "understand-negative": {
       id: "understand-negative",
-      assistantText: [
-        "Mutual fund values move with the market, so a negative return at any point in time is normal and doesn't by itself mean something is wrong.",
-        "It simply means today's market value of your units is below what you've invested so far — that can change as markets move.",
-        "I can't predict where returns will go next, and I won't tell you whether to continue or stop investing — that depends on your own goals and horizon.",
-      ],
+      structured: {
+        whatHappened: `You've invested ${fmtMoney(sip.totalInvested)}; current value is ${fmtMoney(sip.currentValue)} (${absReturn >= 0 ? "+" : ""}${fmtMoney(absReturn)}, ${absReturn >= 0 ? "+" : ""}${returnPct}%), with an XIRR of ${sip.xirrPct}%.`,
+        whatItMeans:
+          "In general, mutual fund values move with the market, so a negative return at any point in time is normal and doesn't by itself mean something is wrong — it simply means the market value of your units is below what's been invested so far, which can change as markets move. I can't predict where returns will go next, and I won't tell you whether to continue or stop investing — that depends on your own goals and horizon.",
+        verifiedNote:
+          absReturn >= 0
+            ? `Verified: your returns are currently positive (${returnPct}%), as of your latest allotted instalment (${sip.previousInstalmentDate ?? latest.date}).`
+            : `Verified: your returns are currently negative (${returnPct}%), as of your latest allotted instalment (${sip.previousInstalmentDate ?? latest.date}).`,
+        isVerified: true,
+        nextSteps: [
+          { id: "sa-20", label: "View portfolio returns", description: "See your full holdings", href: "/portfolio" },
+          { id: "sa-21", label: "Understand SIP terminology", description: "Glossary of common terms", href: "/help/sip-terminology" },
+        ],
+      },
     },
   };
 
   return nodes;
 }
 
+// Single-word / short-phrase triggers, matched against individual words in the message
+// (not raw substrings) so natural phrasing like "skip my next instalment" or
+// "why did my sip fail" still routes correctly — a plain .includes(phrase) check
+// missed both of those in testing.
+// Checked in this order: an action verb like "skip" or "edit" is a more specific
+// signal of intent than a generic word like "instalment", which shows up in
+// almost every SIP question regardless of topic — so manage/mandate are
+// checked before the broader payment list.
 const topicKeywords: Record<Topic, string[]> = {
+  manage: ["manage", "skip", "edit", "cancel", "pause", "stop"],
+  mandate: ["mandate", "autopay"],
   payment: [
-    "payment failed",
-    "sip failed",
-    "instalment failed",
-    "installment failed",
-    "money deducted",
-    "not deducted",
-    "payment fail",
+    "fail",
+    "failed",
+    "failing",
     "debit",
     "debited",
-    "autopay fail",
-    "failed sip",
+    "deduct",
+    "deducted",
     "deduction",
     "units",
-    "not showing",
-    "not reflecting",
-  ],
-  mandate: ["mandate", "autopay status", "approval pending", "e-mandate", "emandate", "autopay"],
-  manage: [
-    "manage my sip",
-    "manage sip",
-    "skip instalment",
-    "skip installment",
-    "change amount",
-    "change date",
-    "cancel sip",
-    "stop sip",
-    "edit sip",
-    "pause sip",
+    "showing",
+    "reflecting",
+    "processing",
+    "pending",
   ],
   understand: [
+    "return",
     "returns",
-    "invested amount",
-    "current value",
+    "invested",
+    "value",
     "terminology",
-    "understand my investment",
-    "how much have i earned",
     "profit",
     "loss",
     "xirr",
+    "negative",
+    "performance",
+    "investment",
   ],
 };
 
@@ -299,7 +304,7 @@ const restrictedKeywords = [
   "will i make money",
 ];
 
-export function matchMessage(raw: string): { restricted: boolean; topic: Topic | null } {
+export function matchMessage(raw: string): { restricted: boolean; topic: Topic | null; nodeId?: string } {
   const text = raw.toLowerCase();
 
   if (restrictedKeywords.some((kw) => text.includes(kw))) {
@@ -308,6 +313,14 @@ export function matchMessage(raw: string): { restricted: boolean; topic: Topic |
 
   for (const topic of Object.keys(topicKeywords) as Topic[]) {
     if (topicKeywords[topic].some((kw) => text.includes(kw))) {
+      // Route a couple of specific, unambiguous phrasings straight to the
+      // relevant explanation instead of the generic topic overview.
+      if (topic === "understand" && text.includes("xirr")) {
+        return { restricted: false, topic, nodeId: "understand-xirr" };
+      }
+      if (topic === "understand" && text.includes("negative")) {
+        return { restricted: false, topic, nodeId: "understand-negative" };
+      }
       return { restricted: false, topic };
     }
   }
@@ -402,5 +415,3 @@ export function buildStoppedNodes(sip: SIP): Record<string, ConversationNode> {
 
   return nodes;
 }
-
-export { activeSip, stoppedSip };

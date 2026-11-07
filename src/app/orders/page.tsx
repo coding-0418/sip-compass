@@ -1,6 +1,6 @@
 import AppHeader from "@/components/AppHeader";
 import BottomNavigation from "@/components/BottomNavigation";
-import { allSips } from "@/lib/data";
+import { getAllSips } from "@/lib/data";
 import type { Instalment, InstalmentStatus, SIP } from "@/lib/types";
 
 const statusStyle: Record<InstalmentStatus, string> = {
@@ -24,8 +24,10 @@ interface Row {
   instalment: Instalment;
 }
 
+export const dynamic = "force-dynamic";
+
 export default function OrdersPage() {
-  const rows: Row[] = allSips
+  const rows: Row[] = getAllSips()
     .flatMap((sip) => sip.recentInstalments.map((instalment) => ({ sip, instalment })))
     .sort((a, b) => Date.parse(b.instalment.date) - Date.parse(a.instalment.date));
 

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { LineChart, TrendingUp, Wallet } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import BottomNavigation from "@/components/BottomNavigation";
-import { activeSip, allSips } from "@/lib/data";
+import { getActiveSip, getAllSips } from "@/lib/data";
 
 const quickLinks = [
   { label: "Mutual Funds", description: "View and manage your SIPs", href: "/", icon: LineChart },
@@ -10,7 +10,12 @@ const quickLinks = [
   { label: "Portfolio", description: "Track your net worth", href: "/portfolio", icon: Wallet },
 ];
 
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
+  const allSips = getAllSips();
+  const activeSip = getActiveSip();
+
   return (
     <div className="flex min-h-screen flex-col">
       <AppHeader variant="main" />

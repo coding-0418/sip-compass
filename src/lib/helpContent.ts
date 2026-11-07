@@ -1,20 +1,18 @@
-import { activeSip } from "./data";
+import { getActiveSip } from "./data";
 
 export type HelpContent =
   | { type: "article"; title: string; intro?: string; paragraphs?: string[]; bullets?: string[] }
   | { type: "list"; title: string; intro?: string; items: { label: string; caption?: string; badge?: string }[] }
   | { type: "status"; title: string; intro?: string; steps: { label: string; caption?: string; done: boolean }[] };
 
-const latest = activeSip.recentInstalments[activeSip.recentInstalments.length - 1];
-
-export const helpContent: Record<string, HelpContent> = {
+const staticHelpContent: Record<string, HelpContent> = {
   "instalment-failures": {
     type: "article",
     title: "Why SIP instalments fail",
     intro: "A failed instalment almost always comes down to one of these:",
     bullets: [
       "Insufficient balance in your linked bank account on the debit date",
-      "An AutoPay mandate that isn't active yet, or has expired",
+      "An AutoPay (mandate) that isn't active yet, or has expired",
       "A temporary issue on your bank's end during processing",
       "The bank's daily auto-debit limit being reached",
     ],
@@ -26,15 +24,15 @@ export const helpContent: Record<string, HelpContent> = {
     type: "article",
     title: "How a SIP order is processed",
     paragraphs: [
-      "When your instalment date arrives, Groww raises a debit request against your bank account through your AutoPay mandate.",
+      "When your instalment date arrives, Groww raises a debit request against your bank account through your AutoPay (mandate).",
       "Once the bank confirms the debit, the money is used to purchase units at the fund's applicable NAV — this allotment can take a day or two, especially around weekends and holidays.",
       "Your bank statement and your Groww order status update independently, so a debit showing in your bank app doesn't always mean the fund units have been allotted yet.",
     ],
   },
   "autopay-status": {
     type: "article",
-    title: "Understanding AutoPay status",
-    intro: "Your mandate can be in one of three states:",
+    title: "Understanding AutoPay (mandate) status",
+    intro: "Your AutoPay (mandate) can be in one of three states:",
     bullets: [
       "Approved — your bank has authorised Groww to auto-debit instalments",
       "Pending — your bank hasn't confirmed the mandate yet, usually within 1–2 working days",
@@ -81,41 +79,54 @@ export const helpContent: Record<string, HelpContent> = {
       { label: "Mandate", caption: "Your bank's authorisation for Groww to auto-debit instalments" },
     ],
   },
-  "transaction-status": {
-    type: "status",
-    title: "Transaction status",
-    intro: `Latest instalment — ${latest.date}`,
-    steps: [
-      { label: "Debit initiated", caption: "Request sent to your bank", done: true },
-      { label: "Debit confirmed", caption: `Bank confirmed the deduction on ${latest.date}`, done: true },
-      { label: "Units allotted", caption: "Awaiting NAV allotment from the fund house", done: latest.status === "Allotted" },
-    ],
-  },
-  "pending-payments": {
-    type: "list",
-    title: "Pending SIP payments",
-    items:
-      latest.status === "Processing" || latest.status === "Failed"
+};
+
+/** Computed fresh on every call from the live SIP data, so these never go stale relative to real "today". */
+function buildDynamicHelpContent(): Record<string, HelpContent> {
+  const activeSip = getActiveSip();
+  const latest = activeSip.recentInstalments[activeSip.recentInstalments.length - 1];
+
+  return {
+    "transaction-status": {
+      type: "status",
+      title: "Transaction status",
+      intro: `Latest instalment — ${latest.date}`,
+      steps: [
+        { label: "Debit initiated", caption: "Request sent to your bank", done: true },
+        { label: "Debit confirmed", caption: `Bank confirmed the deduction on ${latest.date}`, done: true },
+        { label: "Units allotted", caption: "Awaiting NAV allotment from the fund house", done: latest.status === "Allotted" },
+      ],
+    },
+    "pending-payments": {
+      type: "list",
+      title: "Pending SIP payments",
+      items:
+        latest.status === "Processing" || latest.status === "Failed"
+          ? [
+              {
+                label: activeSip.fundName,
+                caption: `₹${latest.amount.toLocaleString("en-IN")} · Instalment of ${latest.date}`,
+                badge: latest.status,
+              },
+            ]
+          : [],
+    },
+    "upcoming-instalments": {
+      type: "list",
+      title: "Upcoming instalments",
+      items: activeSip.nextInstalmentDate
         ? [
             {
               label: activeSip.fundName,
-              caption: `₹${latest.amount.toLocaleString("en-IN")} · Instalment of ${latest.date}`,
-              badge: latest.status,
+              caption: `₹${activeSip.monthlyAmount.toLocaleString("en-IN")} · ${activeSip.nextInstalmentDate}`,
+              badge: "Eligible to skip",
             },
           ]
         : [],
-  },
-  "upcoming-instalments": {
-    type: "list",
-    title: "Upcoming instalments",
-    items: activeSip.nextInstalmentDate
-      ? [
-          {
-            label: activeSip.fundName,
-            caption: `₹${activeSip.monthlyAmount.toLocaleString("en-IN")} · ${activeSip.nextInstalmentDate}`,
-            badge: "Eligible to skip",
-          },
-        ]
-      : [],
-  },
-};
+    },
+  };
+}
+
+export function getHelpContent(slug: string): HelpContent | undefined {
+  return staticHelpContent[slug] ?? buildDynamicHelpContent()[slug];
+}

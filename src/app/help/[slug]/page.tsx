@@ -1,12 +1,13 @@
-import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Check, Circle } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
-import { helpContent } from "@/lib/helpContent";
+import { getHelpContent } from "@/lib/helpContent";
 
-async function HelpArticle({ params }: { params: Promise<{ slug: string }> }) {
+export const dynamic = "force-dynamic";
+
+export default async function HelpPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const content = helpContent[slug];
+  const content = getHelpContent(slug);
   if (!content) notFound();
 
   return (
@@ -91,13 +92,5 @@ async function HelpArticle({ params }: { params: Promise<{ slug: string }> }) {
 
       </main>
     </div>
-  );
-}
-
-export default function HelpPage({ params }: { params: Promise<{ slug: string }> }) {
-  return (
-    <Suspense fallback={null}>
-      <HelpArticle params={params} />
-    </Suspense>
   );
 }

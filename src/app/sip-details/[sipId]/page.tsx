@@ -1,9 +1,10 @@
-import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
 import { getSip } from "@/lib/data";
 import type { Instalment, InstalmentStatus } from "@/lib/types";
+
+export const dynamic = "force-dynamic";
 
 const statusStyle: Record<InstalmentStatus, string> = {
   Allotted: "bg-success-bg text-primary-dark",
@@ -45,7 +46,7 @@ function InstalmentRow({ instalment }: { instalment: Instalment }) {
   );
 }
 
-async function SipDetailsContent({ params }: { params: Promise<{ sipId: string }> }) {
+export default async function SipDetailsPage({ params }: { params: Promise<{ sipId: string }> }) {
   const { sipId } = await params;
   const sip = getSip(sipId);
   if (!sip) notFound();
@@ -130,13 +131,5 @@ async function SipDetailsContent({ params }: { params: Promise<{ sipId: string }
         </Link>
       </main>
     </div>
-  );
-}
-
-export default function SipDetailsPage({ params }: { params: Promise<{ sipId: string }> }) {
-  return (
-    <Suspense fallback={null}>
-      <SipDetailsContent params={params} />
-    </Suspense>
   );
 }

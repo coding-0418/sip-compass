@@ -3,9 +3,13 @@ import BottomNavigation from "@/components/BottomNavigation";
 import TopTabs from "@/components/TopTabs";
 import SIPCard from "@/components/SIPCard";
 import SIPAssistEntryCard from "@/components/SIPAssistEntryCard";
-import { allSips } from "@/lib/data";
+import { getAllSips } from "@/lib/data";
+
+export const dynamic = "force-dynamic";
 
 export default function MutualFundsPage() {
+  const allSips = getAllSips();
+
   return (
     <div className="flex min-h-screen flex-col">
       <AppHeader variant="main" />

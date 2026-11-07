@@ -4,10 +4,10 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { CreditCard, FileCheck2, LifeBuoy, SendHorizonal, Settings2, TrendingUp } from "lucide-react";
+import { ChevronRight, CreditCard, FileCheck2, LifeBuoy, SendHorizonal, Settings2, TrendingUp } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import TopicCard from "@/components/TopicCard";
-import { getSip, getSipAlert, activeSip, topics } from "@/lib/data";
+import { getSip, getSipAlert, getAllSips, topics } from "@/lib/data";
 import type { Topic } from "@/lib/types";
 
 const topicIcons: Record<Topic, typeof CreditCard> = {
@@ -22,22 +22,61 @@ function SipAssistHome() {
   const searchParams = useSearchParams();
   const [input, setInput] = useState("");
 
-  const sip = getSip(searchParams.get("sip") ?? "") ?? activeSip;
+  const sipParam = searchParams.get("sip");
+  const sip = sipParam ? getSip(sipParam) : undefined;
+
+  if (!sip) {
+    const allSips = getAllSips();
+    return (
+      <div className="flex min-h-screen flex-col">
+        <AppHeader variant="sub" title="SIP Compass" subtitle="Your SIP guidance assistant" backHref="/" />
+        <main className="flex-1 space-y-4 px-4 py-5">
+          <div>
+            <h1 className="text-lg font-bold text-ink">Which SIP would you like help with?</h1>
+            <p className="mt-1 text-sm text-muted">
+              {sipParam
+                ? "I couldn't find that SIP, so I don't want to guess — pick one below."
+                : "Select a SIP so I can give you context-specific guidance."}
+            </p>
+          </div>
+          <div className="space-y-2.5">
+            {allSips.map((s) => (
+              <Link
+                key={s.id}
+                href={`/sip-assist?sip=${s.id}`}
+                className="flex items-center justify-between rounded-2xl border border-border bg-white p-3.5 transition-colors hover:border-primary hover:bg-success-bg"
+              >
+                <div>
+                  <p className="text-sm font-medium text-ink">{s.fundName}</p>
+                  <p className="mt-0.5 text-xs text-muted">
+                    ₹{s.monthlyAmount.toLocaleString("en-IN")}/month · {s.status}
+                  </p>
+                </div>
+                <ChevronRight size={16} className="shrink-0 text-muted" />
+              </Link>
+            ))}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   const alert = getSipAlert(sip);
   const isStopped = sip.status === "Stopped";
+  const sipId = sip.id;
 
   function openTopic(topic: Topic) {
-    router.push(`/sip-assist/chat?sip=${sip.id}&topic=${topic}`);
+    router.push(`/sip-assist/chat?sip=${sipId}&topic=${topic}`);
   }
 
   function openStopped() {
-    router.push(`/sip-assist/chat?sip=${sip.id}&stopped=1`);
+    router.push(`/sip-assist/chat?sip=${sipId}&stopped=1`);
   }
 
   function submitInput() {
     const trimmed = input.trim();
     if (!trimmed) return;
-    router.push(`/sip-assist/chat?sip=${sip.id}&q=${encodeURIComponent(trimmed)}`);
+    router.push(`/sip-assist/chat?sip=${sipId}&q=${encodeURIComponent(trimmed)}`);
   }
 
   return (
