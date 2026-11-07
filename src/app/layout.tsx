@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SIP Compass – SIP Assist",
+  title: "SIP Compass",
   description: "A conceptual SIP guidance prototype in a Groww-inspired interface.",
 };
 

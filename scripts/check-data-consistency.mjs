@@ -9,7 +9,8 @@ const sips = getAllSips();
 for (const sip of sips) {
   console.log(
     `[OK] ${sip.id}: totalInvested=₹${sip.totalInvested} (${sip.totalSuccessfulInstalments} x ₹${sip.monthlyAmount}), ` +
-      `status=${sip.status}, stoppedDate=${sip.stoppedDate ?? "-"}, lastInstalmentDate=${sip.lastInstalmentDate ?? "-"}`
+      `status=${sip.status}, stoppedDate=${sip.stoppedDate ?? "-"}, lastInstalmentDate=${sip.lastInstalmentDate ?? "-"}, ` +
+      `currentValue=₹${sip.currentValue}, absoluteReturn=${(((sip.currentValue - sip.totalInvested) / sip.totalInvested) * 100).toFixed(1)}%, XIRR=${sip.xirrPct}%`
   );
 }
 
