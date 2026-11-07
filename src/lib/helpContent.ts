@@ -25,7 +25,7 @@ const staticHelpContent: Record<string, HelpContent> = {
     title: "How a SIP order is processed",
     paragraphs: [
       "When your instalment date arrives, Groww raises a debit request against your bank account through your AutoPay (mandate).",
-      "Once the bank confirms the debit, the money is used to purchase units at the fund's applicable NAV — this allotment can take a day or two, especially around weekends and holidays.",
+      "Once the bank confirms the debit, the money is used to purchase units at the NAV of the applicable business day, so allotment can appear after the debit — especially around weekends and holidays.",
       "Your bank statement and your Groww order status update independently, so a debit showing in your bank app doesn't always mean the fund units have been allotted yet.",
     ],
   },
@@ -35,7 +35,7 @@ const staticHelpContent: Record<string, HelpContent> = {
     intro: "Your AutoPay (mandate) can be in one of three states:",
     bullets: [
       "Approved — your bank has authorised Groww to auto-debit instalments",
-      "Pending — your bank hasn't confirmed the mandate yet, usually within 1–2 working days",
+      "Pending — your bank hasn't confirmed the mandate yet; approval time depends on your bank",
       "Rejected — your bank declined the mandate; you'll need to set up a new one",
     ],
   },
