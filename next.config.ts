@@ -10,8 +10,6 @@ const nextConfig: NextConfig = {
       "node_modules/onnxruntime-node/bin/napi-v*/win32/**",
       "node_modules/onnxruntime-node/bin/napi-v*/linux/arm64/**",
       "node_modules/onnxruntime-web/**",
-      "node_modules/sharp/**",
-      "node_modules/@img/**",
     ],
   },
   turbopack: {
