@@ -1,0 +1,12 @@
+{
+ "raw_rows": 46998,
+ "unique": 44651,
+ "by_source": {
+  "app_store": 984,
+  "google_play": 43667
+ },
+ "sip_keyword": {
+  "app_store": 204,
+  "google_play": 1394
+ }
+}
