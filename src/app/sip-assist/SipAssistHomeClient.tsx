@@ -129,6 +129,9 @@ export default function SipAssistHomeClient({
           <SendHorizonal size={18} />
         </button>
       </form>
+      <p className="px-4 pb-3 text-center text-[11px] leading-snug text-muted">
+        Not investment advice. AI only interprets your question; every figure comes from your SIP record (demo data).
+      </p>
     </div>
   );
 }

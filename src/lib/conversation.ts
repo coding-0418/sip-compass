@@ -64,25 +64,30 @@ export function buildActiveNodes(sip: SIP): Record<string, ConversationNode> {
     },
     "payment-case-processing": {
       id: "payment-case-processing",
+      assistantText: latestIsProcessingOrFailed
+        ? [`Short answer: your money left your bank on ${latest.date} and is waiting to be turned into units. Don't pay again.`]
+        : [`Short answer: your latest instalment (${latest.date}) already has its units, so nothing is stuck right now.`],
       structured: {
         whatHappened: `Your ${fmtMoney(latest.amount)} instalment for ${latestMonth} was debited on ${latest.date}.`,
         whatItMeans:
-          "Bank debit and unit allotment are separate steps — the fund house allots units at the NAV of the applicable business day, so units can appear later than the debit, especially around weekends and holidays. Since a debit is already confirmed, there's no need to pay again for this instalment.",
+          "Debit and units are separate steps. The fund house allots units at the NAV of the applicable business day, so units can show up a few working days after the debit, especially around weekends and holidays.",
         verifiedNote: latestIsProcessingOrFailed
-          ? `Verified: debited on ${latest.date}, currently ${latest.status} — units not yet allotted.`
-          : `Verified: your latest instalment (${latest.date}) was already allotted — no instalment is currently stuck in processing.`,
+          ? `Verified from your instalment record: debited on ${latest.date}, currently ${latest.status}; units not yet allotted.`
+          : `Verified from your instalment record: your latest instalment (${latest.date}) was already allotted.`,
         isVerified: true,
         timeline: [
-          { label: "Bank debit", caption: latest.date, done: true },
-          { label: "Order processing", caption: "Fund house confirming the order", done: latest.status !== "Scheduled" },
-          { label: "Units allotted", caption: "Awaiting NAV allotment", done: latest.status === "Allotted" },
+          { label: "1. Debited from your bank", caption: latest.date, done: true },
+          { label: "2. Payment confirmed, order sent to the fund house", caption: "Groww → exchange → fund house", done: latest.status !== "Scheduled" && latest.status !== "Failed" },
+          { label: "3. Units allotted at NAV", caption: latest.status === "Allotted" ? "Done" : "You are here: waiting for the fund house", done: latest.status === "Allotted" },
+          { label: "4. Shown in your portfolio", caption: latest.status === "Allotted" ? "Done" : "Right after allotment", done: latest.status === "Allotted" },
         ],
         nextSteps: [
           { id: "sa-1", label: "View instalment details", description: "See this in your SIP details", href: detailsHref },
           { id: "sa-2", label: "Check order status", description: "Latest status from your bank and Groww", href: "/help/transaction-status" },
-          { id: "sa-3", label: "Understand processing timelines", description: "How long allotment usually takes", href: "/help/order-processing" },
+          { id: "sa-3", label: "Contact Groww Support", description: "If it's past 6 working days", href: `/support?context=${encodeURIComponent("Units not allotted — " + sip.fundName)}` },
         ],
-        supportNote: "Groww's help centre advises contacting Support if your latest instalment still isn't showing after more than a day.",
+        supportNote:
+          "When to act (Groww help centre): units generally take up to 4 working days after the order. If it's been more than 6 working days, contact Support. If an order fails after the debit, the refund usually reaches your bank in 5–7 business days.",
       },
     },
     "payment-case-not-deducted": {
@@ -242,7 +247,7 @@ export function buildActiveNodes(sip: SIP): Record<string, ConversationNode> {
     },
   };
 
-  return nodes;
+  return { ...nodes, ...stopEffectNodes(sip) };
 }
 
 // Single-word / short-phrase triggers, matched against individual words in the message
@@ -396,6 +401,36 @@ export function buildStoppedReasonNode(sip: SIP, reason: StopReason): Conversati
   };
 }
 
+/** Neutral facts about what stopping does, from Groww's help centre. Shared by active and stopped SIPs. */
+export function stopEffectNodes(sip: SIP): Record<string, ConversationNode> {
+  const supportHref = `/support?context=${encodeURIComponent(sip.fundName)}`;
+  return {
+    "stopped-holdings": {
+      id: "stopped-holdings",
+      assistantText: [
+        "Short answer: stopping a SIP only stops future instalments. The money you already invested stays invested in the fund.",
+        "Its value keeps moving with the fund's NAV, up or down. Taking money out is a separate step called redemption, and you only do it if you choose to.",
+      ],
+      infoCard: { title: "Source", body: "Groww help centre: cancelling a SIP only stops future instalments; amounts already invested remain invested and can be redeemed from the Mutual Funds dashboard." },
+      suggestedActions: [
+        { id: "sh-1", label: "See this SIP's details", description: "Invested amount and current value", href: `/sip-details/${sip.id}` },
+        { id: "sh-2", label: "Contact Groww Support", description: "Talk to a human", href: supportHref },
+      ],
+    },
+    "stopped-restart": {
+      id: "stopped-restart",
+      assistantText: [
+        "Short answer: starting again sets up a new SIP. The units you already hold stay as they are, and new instalments buy additional units.",
+        "Whether and when to start again is your choice. There's no deadline.",
+      ],
+      suggestedActions: [
+        { id: "sr-1", label: "Manage my SIPs", description: "Options in your Mutual Funds dashboard", href: `/sip-details/${sip.id}` },
+        { id: "sr-2", label: "Contact Groww Support", description: "Talk to a human", href: supportHref },
+      ],
+    },
+  };
+}
+
 export const stoppedIntroNode = "stopped-intro";
 export const stoppedIntroMessage = "I'd like to understand why my SIP was stopped.";
 
@@ -405,8 +440,12 @@ export function buildStoppedNodes(sip: SIP): Record<string, ConversationNode> {
     [stoppedIntroNode]: {
       id: stoppedIntroNode,
       assistantText: ["Your SIP has been stopped.", "Would you like help understanding what happened?"],
-      options: stopReasons.map((r) => ({ id: `opt-${r.id}`, label: r.label, nextNodeId: `stopped-${r.id}` })),
+      options: [
+        ...stopReasons.map((r) => ({ id: `opt-${r.id}`, label: r.label, nextNodeId: `stopped-${r.id}` })),
+        { id: "opt-holdings", label: "What happens to the money I already invested?", nextNodeId: "stopped-holdings" },
+      ],
     },
+    ...stopEffectNodes(sip),
   };
 
   for (const r of stopReasons) {
