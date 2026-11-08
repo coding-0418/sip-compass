@@ -56,7 +56,7 @@ export default function PortfolioPage() {
                       </p>
                     </div>
                     <span className="shrink-0 rounded-full bg-surface px-2 py-0.5 text-[11px] font-medium text-muted">
-                      XIRR {sip.xirrPct}%
+                      XIRR {sip.xirrPct.toFixed(1)}%
                     </span>
                   </div>
                   <div className="mt-3 flex items-center justify-between text-xs">

@@ -76,7 +76,7 @@ export default async function SipDetailsPage({ params }: { params: Promise<{ sip
             label="Absolute return"
             value={`${absReturn >= 0 ? "+" : ""}₹${absReturn.toLocaleString("en-IN")} (${absReturn >= 0 ? "+" : ""}${returnPct}%)`}
           />
-          <Row label="XIRR" value={`${sip.xirrPct}%`} />
+          <Row label="XIRR" value={`${sip.xirrPct.toFixed(1)}%`} />
           <Row label="Successful instalments" value={String(sip.totalSuccessfulInstalments)} />
           <Row label="Units held" value={sip.unitsHeld.toFixed(2)} />
         </Section>
