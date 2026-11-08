@@ -14,11 +14,14 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "22" }
       - run: npm ci
-      - run: npx tsx scripts/eval-embed.mts
+      - run: |
+          for m in Xenova/paraphrase-multilingual-MiniLM-L12-v2 Xenova/multilingual-e5-small Xenova/all-MiniLM-L6-v2; do
+            SIP_COMPASS_EMBED_MODEL=$m npx tsx scripts/eval-embed.mts || echo "model $m failed"
+          done
       - name: Push results
         run: |
           git config user.name "research-bot"; git config user.email "research-bot@users.noreply.github.com"
           git checkout -b data/embed-eval
-          git add -f research/embed_eval.json
+          git add -f research/embed_eval_*.json
           git commit -m "embed eval $(date -u +%FT%TZ)"
           git push -f origin data/embed-eval

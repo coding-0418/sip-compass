@@ -14,11 +14,10 @@ const DEV: [string, string][] = [
   ["value is less than what I put in", "returns_negative"], ["after stopping, is the money still invested", "stopped_holdings"],
   ["best fund to buy now?", "advice_request"],
 ];
-const MODELS = (process.env.MODELS ?? "Xenova/paraphrase-multilingual-MiniLM-L12-v2,Xenova/multilingual-e5-small,Xenova/all-MiniLM-L6-v2").split(",");
+const MODELS = [process.env.SIP_COMPASS_EMBED_MODEL ?? "Xenova/paraphrase-multilingual-MiniLM-L12-v2"];
 const out: Record<string, unknown>[] = [];
 for (const m of MODELS) {
-  process.env.SIP_COMPASS_EMBED_MODEL = m;
-  const mod = await import(`../src/lib/embedRouter.ts?m=${encodeURIComponent(m)}`);
+  const mod = await import("../src/lib/embedRouter.ts");
   const prefix = m.includes("e5") ? "query: " : "";
   const cls = async (t: string) => mod.embedClassify(prefix + t);
   const dev = await Promise.all(DEV.map(async ([t, e]) => ({ e, r: await cls(t) })));
@@ -43,4 +42,4 @@ for (const m of MODELS) {
 }
 const fs = await import("fs");
 fs.mkdirSync("research", { recursive: true });
-fs.writeFileSync("research/embed_eval.json", JSON.stringify(out, null, 1));
+fs.writeFileSync(`research/embed_eval_${MODELS[0].split("/")[1]}.json`, JSON.stringify(out, null, 1));
