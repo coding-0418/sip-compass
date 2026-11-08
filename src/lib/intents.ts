@@ -89,6 +89,7 @@ export type RouteResult = {
   source: "ai" | "keyword" | "none";
   confidence: number | null;
   restatement: string | null;
+  aiAvailable: boolean;
   gate: { passed: boolean; checks: GateCheck[] };
 };
 
@@ -139,16 +140,18 @@ export function applyGate(
         source: "ai",
         confidence: ai.confidence,
         restatement: restatementSafe ? ai.restatement : null,
+        aiAvailable: true,
         gate: { passed: true, checks },
       };
     }
   }
 
   // Fallback 1: keyword router. Fallback 2: say we're unsure and offer topics + a human.
-  if (kw.label !== "unclear") {
-    return { label: kw.label, nodeId: kw.nodeId, source: "keyword", confidence: ai?.confidence ?? null, restatement: null, gate: { passed: false, checks } };
+  // Keyword router: a specific answer, or at least the right topic menu.
+  if (kw.label !== "unclear" || kw.nodeId) {
+    return { label: kw.label, nodeId: kw.nodeId, source: "keyword", confidence: ai?.confidence ?? null, restatement: null, aiAvailable: !!ai, gate: { passed: false, checks } };
   }
-  return { label: "unclear", nodeId: null, source: "none", confidence: ai?.confidence ?? null, restatement: null, gate: { passed: false, checks } };
+  return { label: "unclear", nodeId: null, source: "none", confidence: ai?.confidence ?? null, restatement: null, aiAvailable: !!ai, gate: { passed: false, checks } };
 }
 
 export function buildPrompt(text: string) {

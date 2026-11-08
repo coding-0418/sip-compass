@@ -55,6 +55,13 @@ export default function ChatMessage({ message, onOptionSelect }: ChatMessageProp
       <div className="max-w-[92%] space-y-2.5">
         {s ? (
           <div className="space-y-2.5 rounded-2xl rounded-tl-sm border border-border bg-white p-4 text-sm text-ink">
+            {message.text?.length ? (
+              <div className="space-y-1 font-semibold leading-snug">
+                {message.text.map((line, i) => (
+                  <p key={i}>{line}</p>
+                ))}
+              </div>
+            ) : null}
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">What happened</p>
               <p className="mt-0.5 leading-snug">{s.whatHappened}</p>
@@ -73,7 +80,7 @@ export default function ChatMessage({ message, onOptionSelect }: ChatMessageProp
             </div>
             {s.timeline ? <Timeline steps={s.timeline} /> : null}
           </div>
-        ) : (
+        ) : message.text?.length || message.verified ? (
           <div className="rounded-2xl rounded-tl-sm border border-border bg-white px-4 py-2.5 text-sm text-ink">
             {message.verified ? (
               <div className="mb-1.5 flex items-center gap-1 text-[11px] font-medium text-primary-dark">
@@ -87,7 +94,7 @@ export default function ChatMessage({ message, onOptionSelect }: ChatMessageProp
               ))}
             </div>
           </div>
-        )}
+        ) : null}
 
         {message.infoCard ? <InformationCard {...message.infoCard} /> : null}
 
