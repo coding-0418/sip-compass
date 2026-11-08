@@ -5,7 +5,7 @@ on:
     paths: [research/scrape.py, research/label.py, .github/workflows/scrape.yml]
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
   models: read
 jobs:
   scrape:
@@ -20,6 +20,13 @@ jobs:
       - run: python research/label.py
         env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
         continue-on-error: true
+      - name: Push results to data/review-results
+        run: |
+          git config user.name "research-bot"; git config user.email "research-bot@users.noreply.github.com"
+          git checkout -b data/review-results
+          git add -f research/*.csv research/*.json
+          git commit -m "Research results $(date -u +%F)"
+          git push -f origin data/review-results
       - uses: actions/upload-artifact@v4
         with:
           name: research-data

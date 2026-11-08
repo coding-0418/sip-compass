@@ -40,10 +40,15 @@ for s in range(0, len(sample), B):
         break
     if r.status_code != 200:
         print("stop", r.status_code, r.text[:300]); break
+    content = (r.json()["choices"][0]["message"].get("content") or "").strip()
+    if content.startswith("```"):
+        content = content.strip("`").split("\n", 1)[1] if "\n" in content else content
+        content = content.rsplit("```", 1)[0]
     try:
-        items = json.loads(r.json()["choices"][0]["message"]["content"])["items"]
+        parsed = json.loads(content)
+        items = parsed["items"] if isinstance(parsed, dict) else parsed
     except Exception as e:
-        print("parse", e); continue
+        print("parse", e, repr(content[:300])); continue
     for it in items:
         try:
             src = batch[int(it["i"])]
