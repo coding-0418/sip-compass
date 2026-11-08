@@ -5,7 +5,7 @@ import { INTENTS, INTENT_IDS, SPECIAL, applyGate, buildPrompt, type IntentId, ty
 import { EMBED_MODEL, embedClassify } from "./embedRouter";
 
 /** Below this best-match similarity the question is treated as out of scope (set on a dev set, not the golden set). */
-export const SIM_MIN = Number(process.env.SIP_COMPASS_SIM_MIN ?? "0.5");
+export const SIM_MIN = Number(process.env.SIP_COMPASS_SIM_MIN ?? "0.425");
 
 // Groq (free key) if GROQ_API_KEY is set; otherwise Vercel AI Gateway.
 const groqKey = process.env.GROQ_API_KEY;

@@ -26,7 +26,7 @@ const DEV: [string, string][] = [
   ["How do I download my capital gains statement?", "out_of_scope"],
   ["Mera KYC reject ho gaya", "out_of_scope"],
 ];
-const MODELS = [process.env.SIP_COMPASS_EMBED_MODEL ?? "Xenova/paraphrase-multilingual-MiniLM-L12-v2"];
+const MODELS = [process.env.SIP_COMPASS_EMBED_MODEL ?? "Xenova/all-MiniLM-L6-v2"];
 const out: Record<string, unknown>[] = [];
 for (const m of MODELS) {
   const mod = await import("../src/lib/embedRouter.ts");

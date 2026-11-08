@@ -1,7 +1,5 @@
 name: eval-embedding-router
 on:
-  push:
-    branches: [ai-embedding-router]
   workflow_dispatch:
 permissions:
   contents: write
