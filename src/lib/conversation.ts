@@ -200,7 +200,7 @@ export function buildActiveNodes(sip: SIP): Record<string, ConversationNode> {
       id: "understand-info",
       structured: {
         whatHappened: "Here's where your SIP stands financially.",
-        whatItMeans: `You've invested ${fmtMoney(sip.totalInvested)}; current value is ${fmtMoney(sip.currentValue)} (${absReturn >= 0 ? "+" : ""}${fmtMoney(absReturn)}, ${absReturn >= 0 ? "+" : ""}${returnPct}%). XIRR is ${sip.xirrPct}% — it annualises your return so instalments made at different times are comparable.`,
+        whatItMeans: `You've invested ${fmtMoney(sip.totalInvested)}; current value is ${fmtMoney(sip.currentValue)} (${absReturn >= 0 ? "+" : ""}${fmtMoney(absReturn)}, ${absReturn >= 0 ? "+" : ""}${returnPct}%). XIRR is ${sip.xirrPct.toFixed(1)}% — it annualises your return so instalments made at different times are comparable.`,
         verifiedNote: `Verified: figures as of your latest allotted instalment (${sip.previousInstalmentDate ?? latest.date}), ${sip.unitsHeld} units held.`,
         isVerified: true,
         nextSteps: [
@@ -217,7 +217,7 @@ export function buildActiveNodes(sip: SIP): Record<string, ConversationNode> {
       id: "understand-xirr",
       assistantText: [
         "XIRR (Extended Internal Rate of Return) annualises your return across instalments made at different times, so your first instalment — invested longer — is weighted differently from your most recent one.",
-        `Your current XIRR is ${sip.xirrPct}%. It differs from your simple absolute-return percentage because XIRR adjusts for time, not just amount.`,
+        `Your current XIRR is ${sip.xirrPct.toFixed(1)}%. It differs from your simple absolute-return percentage because XIRR adjusts for time, not just amount.`,
       ],
       suggestedActions: [
         { id: "sa-19", label: "Understand SIP terminology", description: "More terms explained", href: "/help/sip-terminology" },
@@ -226,7 +226,7 @@ export function buildActiveNodes(sip: SIP): Record<string, ConversationNode> {
     "understand-negative": {
       id: "understand-negative",
       structured: {
-        whatHappened: `You've invested ${fmtMoney(sip.totalInvested)}; current value is ${fmtMoney(sip.currentValue)} (${absReturn >= 0 ? "+" : ""}${fmtMoney(absReturn)}, ${absReturn >= 0 ? "+" : ""}${returnPct}%), with an XIRR of ${sip.xirrPct}%.`,
+        whatHappened: `You've invested ${fmtMoney(sip.totalInvested)}; current value is ${fmtMoney(sip.currentValue)} (${absReturn >= 0 ? "+" : ""}${fmtMoney(absReturn)}, ${absReturn >= 0 ? "+" : ""}${returnPct}%), with an XIRR of ${sip.xirrPct.toFixed(1)}%.`,
         whatItMeans:
           "In general, mutual fund values move with the market, so a negative return at any point in time is normal and doesn't by itself mean something is wrong — it simply means the market value of your units is below what's been invested so far, which can change as markets move. I can't predict where returns will go next, and I won't tell you whether to continue or stop investing — that depends on your own goals and horizon.",
         verifiedNote:
