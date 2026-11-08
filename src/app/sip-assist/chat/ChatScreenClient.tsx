@@ -22,6 +22,7 @@ type RouteResponse = {
   source: "ai" | "keyword" | "none";
   confidence: number | null;
   restatement: string | null;
+  aiAvailable?: boolean;
 };
 
 function labelText(label: string) {
@@ -140,6 +141,8 @@ export default function ChatScreenClient({
           "Quality check passed",
           `Understood as: ${r.restatement ?? labelText(r.label)}${conf}. The answer below is built from your verified SIP record. The AI didn't write any figures.`,
         );
+      } else if (r.aiAvailable === false) {
+        pushCheck(false, "Quality check: AI unavailable", "The AI check didn't respond, so I matched your words to the closest topic instead. If this isn't right, contact Groww Support.");
       } else {
         pushCheck(false, "Quality check: low confidence", `I wasn't sure I understood${conf}, so I matched keywords instead. If this isn't right, pick a topic or contact Groww Support.`);
       }
@@ -149,7 +152,7 @@ export default function ChatScreenClient({
   }
 
   function pushCheck(passed: boolean, title: string, body: string) {
-    setMessages((prev) => [...prev, { id: nextId(), role: "assistant", infoCard: { title: (passed ? "✓ " : "⚠ ") + title, body, tone: passed ? "default" : "warning" } }]);
+    setMessages((prev) => [...prev, { id: nextId(), role: "assistant", infoCard: { title: (passed ? "✓ " : "") + title, body, tone: passed ? "default" : "warning" } }]);
   }
 
   function respondUnclear(outOfScope = false) {
@@ -159,13 +162,12 @@ export default function ChatScreenClient({
         id: nextId(),
         role: "assistant",
         infoCard: {
-          title: "⚠ Quality check: not confident",
-          body: outOfScope
+          title: "Quality check: not confident",
+          body: (outOfScope
             ? "This looks outside what SIP Compass can answer from your SIP record, so I won't guess."
-            : "I couldn't confidently tell what you meant, so I won't guess.",
+            : "I couldn't confidently tell what you meant, so I won't guess.") + " Pick the closest topic, or talk to Groww Support.",
           tone: "warning",
         },
-        text: ["Pick the closest topic, or talk to Groww Support."],
         options: (Object.keys(topicEntryNode) as Topic[]).map((t) => ({ id: `t-${t}`, label: topicTitle[t], nextNodeId: topicEntryNode[t] })),
         suggestedActions: [{ id: "support", label: "Contact Groww Support", description: "Official help for anything else", href: `/support?context=${encodeURIComponent(sip.fundName)}` }],
       },
