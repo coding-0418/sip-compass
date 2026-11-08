@@ -99,13 +99,6 @@ export default function ChatScreenClient({
     if (!trimmed) return;
     setMessages((prev) => [...prev, { id: nextId(), role: "user", text: [trimmed] }]);
 
-    if (isStopped) {
-      respondWithText(
-        "I'm not able to answer free-form questions about a stopped SIP yet — pick one of the reasons above, or contact support for anything specific.",
-      );
-      return;
-    }
-
     void routeWithAi(trimmed);
   }
 

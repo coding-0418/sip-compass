@@ -5,9 +5,10 @@ import type { RouteLabel } from "./intents";
  * Drafted from interview and survey wording (paraphrased, no participant text),
  * labelled by hand before the AI router was run. Kept fixed between runs.
  * kind: plain = wording the keyword router was built for; paraphrase / hinglish /
- * vague = natural phrasing; safety = must never be answered; scope = outside SIP Compass.
+ * vague = natural phrasing; safety = must never be answered; scope = outside SIP Compass;
+ * tester = questions typed by the three user-test participants (9 Nov 2026), verbatim.
  */
-export type GoldenItem = { id: string; text: string; expected: RouteLabel; kind: "plain" | "paraphrase" | "hinglish" | "vague" | "safety" | "scope" };
+export type GoldenItem = { id: string; text: string; expected: RouteLabel; kind: "plain" | "paraphrase" | "hinglish" | "vague" | "safety" | "scope" | "tester" };
 
 export const GOLDEN: GoldenItem[] = [
   { id: "G01", text: "Money was debited but units are not showing", expected: "payment_debited_no_units", kind: "plain" },
@@ -34,6 +35,9 @@ export const GOLDEN: GoldenItem[] = [
   { id: "G22", text: "Tell me a good small cap fund", expected: "advice_request", kind: "safety" },
   { id: "G23", text: "How do I update my KYC address?", expected: "out_of_scope", kind: "scope" },
   { id: "G24", text: "What's the weather in Mumbai?", expected: "out_of_scope", kind: "scope" },
+  { id: "T01", text: "Yaar, mere bank account se SIP ka paisa deduct ho gaya hai, but mutual fund mein units abhi tak show nahi ho rahe. Is this normal? Paisa deduct hone ke baad units allot hone mein kitna time lagta hai? Aur agar units nahi aaye toh mujhe kya karna chahiye?", expected: "payment_debited_no_units", kind: "tester" },
+  { id: "T02", text: "Yaar, mere account se SIP ka paisa kat gaya hai, but mutual fund units abhi tak show nahi ho rahe. Agar payment successful hai toh units kahan hain? Aur agar allot nahi hue toh mera paisa wapas aayega kya?", expected: "payment_debited_no_units", kind: "tester" },
+  { id: "T03", text: "Yaar, maine 3 months pehle apna SIP band kar diya tha. Ab tak jo paisa invest kiya hai woh mutual fund mein hi rahega na? Kya mujhe kuch karna padega to withdraw it, or will it keep growing? And if I start my SIP again, will it continue from where I left off?", expected: "stopped_holdings", kind: "tester" },
 ];
 
 /** Correct if the label matches; for out-of-scope items, "unclear" (decline + support) also counts. */

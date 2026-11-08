@@ -61,6 +61,16 @@ export const INTENTS = {
     label: "Why value is below what I invested",
     hint: "value fell, negative returns, loss, red numbers, portfolio down",
   },
+  stopped_holdings: {
+    nodeId: "stopped-holdings",
+    label: "What happens to money already invested after stopping",
+    hint: "after stopping or cancelling a SIP: is the money still invested, does it keep growing, do I have to withdraw, does stopping mean withdrawing",
+  },
+  stopped_restart: {
+    nodeId: "stopped-restart",
+    label: "Starting a SIP again",
+    hint: "restart or resume a stopped SIP, will it continue from where I left off",
+  },
 } as const;
 
 export type IntentId = keyof typeof INTENTS;
