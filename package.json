@@ -10,6 +10,7 @@
     "check-data": "tsx scripts/check-data-consistency.mjs"
   },
   "dependencies": {
+    "@ai-sdk/groq": "^4.0.78",
     "ai": "^7.0.165",
     "lucide-react": "^1.70.0",
     "next": "16.4.5",
