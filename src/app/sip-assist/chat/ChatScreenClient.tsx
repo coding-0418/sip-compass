@@ -5,7 +5,8 @@ import { SendHorizonal } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import ChatMessageView from "@/components/ChatMessage";
 import TypingIndicator from "@/components/TypingIndicator";
-import { FALLBACK_TEXT, RESTRICTED_TEXT, matchMessage, topicEntryNode, topicOpeningMessage, stoppedIntroNode, stoppedIntroMessage } from "@/lib/conversation";
+import { RESTRICTED_TEXT, matchMessage, topicEntryNode, topicOpeningMessage, stoppedIntroNode, stoppedIntroMessage } from "@/lib/conversation";
+import { INTENTS, type IntentId } from "@/lib/intents";
 import type { ChatMessage, ConversationNode, SIP, Topic } from "@/lib/types";
 
 const topicTitle: Record<Topic, string> = {
@@ -14,6 +15,18 @@ const topicTitle: Record<Topic, string> = {
   manage: "Manage my SIP",
   understand: "Understand my investment",
 };
+
+type RouteResponse = {
+  label: string;
+  nodeId: string | null;
+  source: "ai" | "keyword" | "none";
+  confidence: number | null;
+  restatement: string | null;
+};
+
+function labelText(label: string) {
+  return label in INTENTS ? INTENTS[label as IntentId].label : "your question";
+}
 
 let idCounter = 0;
 function nextId() {
@@ -93,16 +106,77 @@ export default function ChatScreenClient({
       return;
     }
 
-    const { restricted, topic, nodeId } = matchMessage(trimmed);
-    if (restricted) {
-      respondWithText(RESTRICTED_TEXT);
-      return;
+    void routeWithAi(trimmed);
+  }
+
+  async function routeWithAi(text: string) {
+    setTyping(true);
+    let r: RouteResponse | null = null;
+    try {
+      const res = await fetch("/api/route-question", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (res.ok) r = (await res.json()) as RouteResponse;
+    } catch {
+      r = null;
     }
-    if (topic) {
-      respondWithNode(nodeId ?? topicEntryNode[topic]);
-      return;
+    setTyping(false);
+
+    // Network failure: use the on-device keyword router and say so.
+    if (!r) {
+      const { restricted, topic, nodeId } = matchMessage(text);
+      if (restricted) return respondWithText(RESTRICTED_TEXT, 0);
+      if (topic) {
+        pushCheck(false, "Quality check: AI unavailable", "I matched your question by keywords instead. If this isn't what you meant, pick a topic or contact Groww Support.");
+        return respondWithNode(nodeId ?? topicEntryNode[topic], 300);
+      }
+      return respondUnclear();
     }
-    respondWithText(FALLBACK_TEXT);
+
+    const conf = r.confidence !== null ? ` · confidence ${r.confidence.toFixed(2)}` : "";
+    if (r.label === "advice_request") {
+      pushCheck(true, "Quality check: advice request declined", `This asks for a fund, market or buy/sell view${conf}. SIP Compass doesn't give investment advice.`);
+      return respondWithText(RESTRICTED_TEXT, 300);
+    }
+    if (r.nodeId && nodes[r.nodeId]) {
+      if (r.source === "ai") {
+        pushCheck(
+          true,
+          "Quality check passed",
+          `Understood as: ${r.restatement ?? labelText(r.label)}${conf}. The answer below is built from your verified SIP record. The AI didn't write any figures.`,
+        );
+      } else {
+        pushCheck(false, "Quality check: low confidence", `I wasn't sure I understood${conf}, so I matched keywords instead. If this isn't right, pick a topic or contact Groww Support.`);
+      }
+      return respondWithNode(r.nodeId, 300);
+    }
+    return respondUnclear(r.label === "out_of_scope");
+  }
+
+  function pushCheck(passed: boolean, title: string, body: string) {
+    setMessages((prev) => [...prev, { id: nextId(), role: "assistant", infoCard: { title: (passed ? "✓ " : "⚠ ") + title, body, tone: passed ? "default" : "warning" } }]);
+  }
+
+  function respondUnclear(outOfScope = false) {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: nextId(),
+        role: "assistant",
+        infoCard: {
+          title: "⚠ Quality check: not confident",
+          body: outOfScope
+            ? "This looks outside what SIP Compass can answer from your SIP record, so I won't guess."
+            : "I couldn't confidently tell what you meant, so I won't guess.",
+          tone: "warning",
+        },
+        text: ["Pick the closest topic, or talk to Groww Support."],
+        options: (Object.keys(topicEntryNode) as Topic[]).map((t) => ({ id: `t-${t}`, label: topicTitle[t], nextNodeId: topicEntryNode[t] })),
+        suggestedActions: [{ id: "support", label: "Contact Groww Support", description: "Official help for anything else", href: `/support?context=${encodeURIComponent(sip.fundName)}` }],
+      },
+    ]);
   }
 
   useEffect(() => {
@@ -188,6 +262,9 @@ export default function ChatScreenClient({
           <SendHorizonal size={18} />
         </button>
       </form>
+      <p className="px-4 pb-3 text-center text-[11px] leading-snug text-muted">
+        Not investment advice. AI only interprets your question; every figure comes from your SIP record (demo data).
+      </p>
     </div>
   );
 }
